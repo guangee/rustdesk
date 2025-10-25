@@ -234,11 +234,20 @@ jobs:
           path: rustdesk
 
       - name: Sign rustdesk files
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: powershell
         run: |
-          pip3 install requests argparse
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
+          # 检查是否配置了证书
+          if ("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}" -eq "") {
+            Write-Host "⚠️  未配置 Windows 证书，跳过签名" -ForegroundColor Yellow
+            exit 0
+          }
+          
+          # 使用签名脚本
+          ./res/sign-windows.ps1 -FilePath "./rustdesk"
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       - name: Build self-extracted executable
         shell: bash
@@ -265,11 +274,21 @@ jobs:
           mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/rustdesk-*.msi
 
-      - name: Sign rustdesk self-extracted file
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
+      - name: Sign rustdesk self-extracted file and MSI
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: powershell
         run: |
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
+          # 检查是否配置了证书
+          if ("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}" -eq "") {
+            Write-Host "⚠️  未配置 Windows 证书，跳过签名" -ForegroundColor Yellow
+            exit 0
+          }
+          
+          # 使用签名脚本
+          ./res/sign-windows.ps1 -FilePath "./SignOutput"
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
@@ -399,12 +418,21 @@ jobs:
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: Release
 
-      - name: Sign rustdesk files
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
+      - name: Sign rustdesk files (Sciter)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: powershell
         run: |
-          pip3 install requests argparse
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./Release/
+          # 检查是否配置了证书
+          if ("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}" -eq "") {
+            Write-Host "⚠️  未配置 Windows 证书，跳过签名" -ForegroundColor Yellow
+            exit 0
+          }
+          
+          # 使用签名脚本
+          ./res/sign-windows.ps1 -FilePath "./Release"
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       - name: Build self-extracted executable
         shell: bash
@@ -417,11 +445,21 @@ jobs:
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
 
-      - name: Sign rustdesk self-extracted file
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
+      - name: Sign rustdesk self-extracted file (Sciter)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: powershell
         run: |
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput/
+          # 检查是否配置了证书
+          if ("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}" -eq "") {
+            Write-Host "⚠️  未配置 Windows 证书，跳过签名" -ForegroundColor Yellow
+            exit 0
+          }
+          
+          # 使用签名脚本
+          ./res/sign-windows.ps1 -FilePath "./SignOutput"
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
@@ -433,7 +471,7 @@ jobs:
             ./SignOutput/rustdesk-*.exe
 
   build-rustdesk-ios:
-    if: ${{ inputs.upload-artifact }}
+    if: false  # 禁用 iOS 构建
     name: build rustdesk ios ipa
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
@@ -553,6 +591,7 @@ jobs:
 
 
   build-for-macOS:
+    if: false  # 禁用 macOS 构建
     name: ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
@@ -803,6 +842,7 @@ jobs:
           files: rustdesk-${{ env.VERSION }}-unsigned.tar.gz
 
   build-rustdesk-android:
+    if: false  # 禁用 Android 构建
     needs: [generate-bridge]
     name: build rustdesk android apk ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
@@ -1093,9 +1133,9 @@ jobs:
             signed-apk/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
 
   build-rustdesk-android-universal:
+    if: false  # 禁用 Android Universal 构建
     needs: [build-rustdesk-android]
     name: build rustdesk android universal apk
-    if: ${{ inputs.upload-artifact }}
     runs-on: ubuntu-24.04
     env:
       reltype: release
@@ -1275,6 +1315,7 @@ jobs:
             signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
 
   build-rustdesk-linux:
+    if: false  # 禁用 Linux 构建
     needs: [generate-bridge]
     name: build rustdesk linux ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.on }}
@@ -1611,7 +1652,7 @@ jobs:
             res/rustdesk-${{ env.VERSION }}*.zst
 
   build-rustdesk-linux-sciter:
-    if: ${{ inputs.upload-artifact }}
+    if: false  # 禁用 Linux Sciter 构建
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
     strategy:
@@ -1837,10 +1878,10 @@ jobs:
           path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
 
   build-appimage:
+    if: false  # 禁用 AppImage 构建
     name: Build appimage ${{ matrix.job.target }}
     needs: [build-rustdesk-linux]
     runs-on: ubuntu-22.04
-    if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:
@@ -1887,12 +1928,12 @@ jobs:
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
 
   build-flatpak:
+    if: false  # 禁用 Flatpak 构建
     name: Build flatpak ${{ matrix.job.target }}${{ matrix.job.suffix }}
     needs:
       - build-rustdesk-linux
       - build-rustdesk-linux-sciter
     runs-on: ${{ matrix.job.on }}
-    if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:

@@ -1,0 +1,78 @@
+==============================================
+  RustDesk Windows 签名配置 - 命令清单
+==============================================
+
+📝 第一步：提交并推送代码
+----------------------------------------------
+cd /Volumes/ExtendedSpace/Projects/IdeaProjects/rustdesk
+git add .
+git commit -m "配置 Windows 测试签名 + 自动证书生成"
+git push
+
+
+🔐 第二步：在 GitHub 上生成证书
+----------------------------------------------
+1. 打开浏览器访问：
+   https://github.com/YOUR_USERNAME/rustdesk/actions
+
+2. 点击左侧：Generate Test Certificate
+
+3. 点击右侧：Run workflow (下拉) → Run workflow (绿色按钮)
+
+4. 等待 1-2 分钟完成
+
+5. 下载 Artifacts → test-certificate
+
+6. 解压得到：rustdesk-test-cert-base64.txt
+
+
+🔑 第三步：配置 GitHub Secrets
+----------------------------------------------
+1. 访问：
+   https://github.com/YOUR_USERNAME/rustdesk/settings/secrets/actions
+
+2. 点击 "New repository secret"
+
+3. 添加第一个 Secret：
+   Name:  WINDOWS_CERTIFICATE_BASE64
+   Value: (粘贴 rustdesk-test-cert-base64.txt 的全部内容)
+
+4. 添加第二个 Secret：
+   Name:  WINDOWS_CERTIFICATE_PASSWORD
+   Value: RustDeskTest2024!
+
+
+🚀 第四步：触发构建测试
+----------------------------------------------
+cd /Volumes/ExtendedSpace/Projects/IdeaProjects/rustdesk
+git commit --allow-empty -m "测试 Windows 签名构建"
+git push
+
+
+📊 第五步：查看构建状态
+----------------------------------------------
+访问：https://github.com/YOUR_USERNAME/rustdesk/actions
+
+查找 "Sign rustdesk files" 步骤，应该显示：
+  ✅ 证书导入成功
+  ✅ 签名成功
+
+
+📦 第六步：下载已签名的应用
+----------------------------------------------
+访问：https://github.com/YOUR_USERNAME/rustdesk/releases
+
+下载：
+  • rustdesk-1.4.3-x86_64.exe (已签名)
+  • rustdesk-1.4.3-x86_64.msi (已签名)
+
+
+==============================================
+  ⏱️  预计总时间：约 5-10 分钟配置 + 30-45 分钟构建
+==============================================
+
+需要帮助？查看：
+  • NEXT_STEPS.md - 详细步骤
+  • CERTIFICATE_GENERATION_GUIDE.md - 证书生成指南
+  • QUICK_START.md - 快速开始
+
